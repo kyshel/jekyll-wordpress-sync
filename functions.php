@@ -5,13 +5,12 @@
 function jws_jk2wp_sync(){
 
 	$insert=jws_jk2wp_get_insert();
-	//echo 'insert <pre>' . var_export($insert, true) . '</pre>';
+	echo 'insert <pre>' . var_export($insert, true) . '</pre>';
 
 	foreach ($insert as $insert_index => $insert_post) {
 		$wp_post_added_id = wp_insert_post( $insert_post, true );
-		$add_post_meta_return = add_post_meta($wp_post_added_id, JWS_POST_META_SHA_KEY, $insert_post->sha, true);
 
-		if ($wp_post_added_id && $add_post_meta_return) {
+		if ($wp_post_added_id ) {
 			$message_add = 'add success!';
 		}else{
 			$message_add = 'add fail!';
@@ -42,8 +41,11 @@ function jws_jk2wp_get_insert(){
 			'post_title'    => jws_cut_jk_filename($jk_post->name),
 			'post_content'  => $post_content,
 			'post_status'   => 'publish',
+			'meta_input'   => array(
+				JWS_POST_META_SHA_KEY => $jk_post->sha,
+				),
 			//'post_author'   => 1,
-		);
+			);
 		//echo '<pre>' . var_export($my_post, true) . '</pre>';
 		$insert[]=$my_post;
 	}
@@ -66,6 +68,13 @@ function jws_base64_to_md($str){
 }
 
 function jws_jk2wp_show_diff(){
+
+	?>
+	<form method="post" action="">
+		<button type="submit" name="jws_jk2wp_sync">jk2wp_sync</button>
+	</form>
+	<?php
+
 	$diff=jws_jk2wp_get_diff();
 
 	echo '<div class="postbox">Will add jk:<br>';
@@ -294,24 +303,31 @@ function jws_jk2wp_page() {
 	}
 
 
-	if( isset($_POST['jws_jk2wp'])) {
+	if( isset($_POST['jws_jk2wp_analyze'])) {
 		?>
-		<div class="updated"><p><strong><?php _e('Jekyll -> Wordpress Finish!', 'jws' ); ?></strong></p></div>
+		<div class="updated"><p><strong><?php _e('Jekyll -> Wordpress Analyze Finish!', 'jws' ); ?></strong></p></div>
 		<?php
 	}
+
+
+
+
 
 	echo '<div class="wrap">';
 	echo "<h2>" . __( 'Jekyll -> Worpdress', 'jws' ) . "</h2>";
 	?>
 
 	<form method="post" action="">
-		<button type="submit" name="jws_jk2wp">jk2wp</button>
+		<button type="submit" name="jws_jk2wp_analyze">jk2wp_analyze</button>
 	</form>
 
 	<?php
-	if( isset($_POST['jws_jk2wp'])) {
+	if( isset($_POST['jws_jk2wp_analyze'])) {
 		//require_once(dirname( __FILE__ ) . '/import.php');
 		jws_show_data();
+	}
+	if( isset($_POST['jws_jk2wp_sync'])) {
+		jws_jk2wp_sync();
 	}
 
 	echo '</div>'; // div-wrap

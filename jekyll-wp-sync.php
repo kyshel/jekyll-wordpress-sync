@@ -24,9 +24,9 @@ function jws_show_data(){
 
 	//echo 'jk <pre>' . var_export(jws_get_jk_posts(), true) . '</pre>';
 
-	 //jws_jk2wp_show_diff();
+	jws_jk2wp_show_diff();
 
-	jws_jk2wp_sync();
+	//jws_jk2wp_sync();
 
 }
 
