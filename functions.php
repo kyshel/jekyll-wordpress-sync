@@ -1,55 +1,54 @@
 <?php
 
-function jws_show_data(){
 
-
-	//echo 'wp <pre>' . var_export(jws_get_wp_posts(), true) . '</pre>';
-	//echo 'jk <pre>' . var_export(jws_get_jk_posts(), true) . '</pre>';
-
-	//jws_jk2wp_show_diff();
-
-	jws_jk2wp_sync();
-
-}
 
 function jws_jk2wp_sync(){
+
+	$insert=jws_jk2wp_get_insert();
+	//echo 'insert <pre>' . var_export($insert, true) . '</pre>';
+
+	foreach ($insert as $insert_index => $insert_post) {
+		$wp_post_added_id = wp_insert_post( $insert_post, true );
+		$add_post_meta_return = add_post_meta($wp_post_added_id, JWS_POST_META_SHA_KEY, $insert_post->sha, true);
+
+		if ($wp_post_added_id && $add_post_meta_return) {
+			$message_add = 'add success!';
+		}else{
+			$message_add = 'add fail!';
+		}
+	}
+	
+
+	kbn($message_add);
+}
+
+function jws_jk2wp_get_insert(){
 	$Parsedown = new Parsedown();
 	$diff=jws_jk2wp_get_diff();
+	$insert=[];
 
 	foreach ($diff['jk_add'] as $jk_add_index => $jk_posts_index) {
 		$jk_post=$diff['jk_posts'][$jk_posts_index];
+		$post_title=jws_cut_jk_filename($jk_post->name);
+		if ($post_title == JWS_JK_WRONG_POST_NAME) {
+			continue;
+		}
+
 		$file=jws_get_api_obj($jk_post->_links->self);
 		$post_content_raw=jws_base64_to_md($file->content);
-		//$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
+		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
 
 		$my_post = array(
 			'post_title'    => jws_cut_jk_filename($jk_post->name),
-			'post_content'  => $post_content_raw,
+			'post_content'  => $post_content,
 			'post_status'   => 'publish',
 			//'post_author'   => 1,
 		);
-		echo '<pre>' . var_export($my_post, true) . '</pre>';
-
-
-		//$wp_post_added_id = wp_insert_post( $my_post, true );
-		//$add_post_meta_return = add_post_meta($wp_post_added_id, JWS_POST_META_SHA_KEY, $post->sha, true);
-
-		// if ($wp_post_added_id && $add_post_meta_return) {
-		// 	$message_add = 'add success!';
-		// }else{
-		// 	$message_add = 'add fail!';
-		// }
+		//echo '<pre>' . var_export($my_post, true) . '</pre>';
+		$insert[]=$my_post;
 	}
 
-
-
-	//kbn($message_add);
-}
-
-function jws_md_to_html($str){
-
-
-	return ;
+	return $insert;
 }
 
 
@@ -69,35 +68,35 @@ function jws_base64_to_md($str){
 function jws_jk2wp_show_diff(){
 	$diff=jws_jk2wp_get_diff();
 
-	echo '<div class="postbox">Will add:<br>';
+	echo '<div class="postbox">Will add jk:<br>';
 	foreach ($diff['jk_add'] as $index => $posts_index) {	
 		echo $diff['jk_posts'][$posts_index]->name.'<br>';
 	}
 	echo '</div>';
 
-	echo '<div class="postbox">Will update:<br>';
+	echo '<div class="postbox">Will update jk-wp:<br>';
 	foreach ($diff['jk_update'] as $index => $posts_index) {		
 		echo $diff['jk_posts'][$posts_index]->name.'<br>';		
 	}
 	echo '</div>';
 
-	echo '<div class="postbox">Keep reserve:<br>';
+	echo '<div class="postbox">Keep reserve jk-wp:<br>';
 	foreach ($diff['jk_reserve'] as $index => $posts_index) {
 		echo $diff['jk_posts'][$posts_index]->name.'<br>';
 	}
 	echo '</div>';
 
-	echo '<div class="postbox">Not touch:<br>';
+	echo '<div class="postbox">Not touch wp:<br>';
 	foreach ($diff['wp_beyond'] as $index => $posts_index) {
 		echo $diff['wp_posts'][$posts_index]->post_title.'<br>';
 	}
 	echo '</div>';
 
 
-	// echo 'Will add:<pre>' . var_export($diff['jk_add'], true) . '</pre>';
-	// echo 'Will update:<pre>' . var_export($diff['jk_update'], true) . '</pre>';
-	// echo 'Keep reserve:<pre>' . var_export($diff['jk_reserve'], true) . '</pre>';
-	// echo 'Not touch:<pre>' . var_export($diff['wp_beyond'], true) . '</pre>';
+	echo 'Will add jk:<pre>' . var_export($diff['jk_add'], true) . '</pre>';
+	echo 'Will update jk-wp:<pre>' . var_export($diff['jk_update'], true) . '</pre>';
+	echo 'Keep reserve jk-wp:<pre>' . var_export($diff['jk_reserve'], true) . '</pre>';
+	echo 'Not touch wp:<pre>' . var_export($diff['wp_beyond'], true) . '</pre>';
 
 }
 
@@ -144,10 +143,20 @@ function jws_jk2wp_get_diff(){
 	}
 
 	
-	// echo '<pre>jk_post_names:' . var_export($jk_post_names, true) . '</pre>';
-	// echo '<pre>jk_post_shas:' . var_export($jk_post_shas, true) . '</pre>';
-	// echo '<pre>wp_post_names:' . var_export($wp_post_names, true) . '</pre>';
-	// echo '<pre>wp_post_ids:' . var_export($wp_post_ids, true) . '</pre>';
+	//echo '<pre>jk_post_names:' . var_export($jk_post_names, true) . '</pre>';
+	//echo '<pre>jk_post_shas:' . var_export($jk_post_shas, true) . '</pre>';
+	//echo '<pre>wp_post_names:' . var_export($wp_post_names, true) . '</pre>';
+	//echo '<pre>wp_post_ids:' . var_export($wp_post_ids, true) . '</pre>';
+
+	// foreach ($jk_post_names as $jk_post_index => $jk_post_name){
+	// 	$wp_post_name_exist_index = array_search($jk_post_name, $wp_post_names);
+	// 	if ($wp_post_name_exist_index) {
+	// 		echo 'same_name:'.$wp_post_names[$wp_post_name_exist_index].'<br>';
+	// 	}
+	// }
+
+
+
 
 	$jk_reserve=[];
 	$jk_update=[];
@@ -160,6 +169,8 @@ function jws_jk2wp_get_diff(){
 	foreach ($jk_post_names as $jk_post_index => $jk_post_name) {
 		if (false !== $wp_post_name_exist_index = array_search($jk_post_name, $wp_post_names)) {
 			// has same name, is_has_sha ?
+
+			//echo 'same_name:'.$wp_post_names[$wp_post_name_exist_index].'<br>';
 
 			if ('' != $wp_post_git_sha=get_post_meta( $wp_post_ids[$wp_post_name_exist_index],$meta_sha_name,true)) {
 				// has sha, is_update?
@@ -207,7 +218,12 @@ function jws_jk2wp_get_diff(){
 
 
 function jws_get_wp_posts(){
-	$a=get_posts();
+	$args = array(
+		'post_status' => 'publish',
+		'numberposts' => -1,
+		);
+
+	$a=get_posts($args);
 	//echo '<pre>' . var_export($a, true) . '</pre>';
 	return $a;
 }
@@ -220,6 +236,15 @@ function jws_get_jk_posts(){
 
 	return $posts;
 }
+
+function _jws_get_jk_posts(){
+	$str = file_get_contents(dirname( __FILE__ ) . '/b.json');
+	$posts = json_decode($str);
+
+	return $posts;
+}
+
+
 
 function jws_get_api_obj($file_link){
 	$opts = 
@@ -234,8 +259,8 @@ function jws_get_api_obj($file_link){
 	];
 
 	$context = stream_context_create($opts);
-
 	$file_str=file_get_contents($file_link, false, $context);
+
 	$file_obj=json_decode($file_str);
 
 	return $file_obj;
@@ -271,7 +296,7 @@ function jws_jk2wp_page() {
 
 	if( isset($_POST['jws_jk2wp'])) {
 		?>
-		<div class="updated"><p><strong><?php _e('Jekyll -> Wordpress Success!', 'jws' ); ?></strong></p></div>
+		<div class="updated"><p><strong><?php _e('Jekyll -> Wordpress Finish!', 'jws' ); ?></strong></p></div>
 		<?php
 	}
 
