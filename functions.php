@@ -5,20 +5,20 @@
 function jws_jk2wp_sync(){
 
 	$insert=jws_jk2wp_get_insert();
-	echo 'insert <pre>' . var_export($insert, true) . '</pre>';
+	//echo 'insert <pre>' . var_export($insert, true) . '</pre>';
 
 	foreach ($insert as $insert_index => $insert_post) {
-		$wp_post_added_id = wp_insert_post( $insert_post, true );
+		$wp_post_inserted_id = wp_insert_post( $insert_post, true );
 
-		if ($wp_post_added_id ) {
-			$message_add = 'add success!';
+		if ($wp_post_inserted_id ) {
+			$message = 'Sync success!';
 		}else{
-			$message_add = 'add fail!';
+			$message = 'Sync fail!';
 		}
 	}
 	
 
-	kbn($message_add);
+	kbn($message);
 }
 
 function jws_jk2wp_get_insert(){
@@ -39,6 +39,39 @@ function jws_jk2wp_get_insert(){
 
 		$my_post = array(
 			'post_title'    => jws_cut_jk_filename($jk_post->name),
+			'post_content'  => $post_content,
+			'post_status'   => 'publish',
+			'meta_input'   => array(
+				JWS_POST_META_SHA_KEY => $jk_post->sha,
+				),
+			//'post_author'   => 1,
+			);
+		//echo '<pre>' . var_export($my_post, true) . '</pre>';
+		$insert[]=$my_post;
+	}
+
+	foreach ($diff['jk_update'] as $jk_update_index => $jk_posts_index) {
+
+		$wp_post_name_exist_index = $diff['wp_update'][$jk_update_index];
+		$post_id=$diff['wp_posts'][$wp_post_name_exist_index] -> ID;
+
+		kred($post_id);
+			
+
+		$jk_post=$diff['jk_posts'][$jk_posts_index];
+		$post_title=jws_cut_jk_filename($jk_post->name);
+		if ($post_title == JWS_JK_WRONG_POST_NAME) {
+			continue;
+		}
+
+
+		$file=jws_get_api_obj($jk_post->_links->self);
+		$post_content_raw=jws_base64_to_md($file->content);
+		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
+
+		$my_post = array(
+			'ID' => $post_id,
+			'post_title'    => $post_title,
 			'post_content'  => $post_content,
 			'post_status'   => 'publish',
 			'meta_input'   => array(
@@ -120,6 +153,7 @@ function jws_cut_jk_filename($jk_filename){
 		$jk_post_name_explode=explode('-',$jk_filename,4);
 		$jk_post_name_array= pathinfo($jk_post_name_explode[3]);
 		$jk_post_name=$jk_post_name_array['filename'];
+		$jk_post_name=rtrim($jk_post_name);
 	}
 
 	return $jk_post_name;
