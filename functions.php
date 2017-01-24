@@ -208,11 +208,15 @@ function jws_jk2wp_get_diff(){
 
 	}
 
-	$wp_beyond=array_diff(range(0, count($wp_post_names)-1),$wp_reserve,$wp_update);
+	if (count($wp_post_names) != 0) {
+		$wp_beyond=array_diff(range(0, count($wp_post_names)-1),$wp_reserve,$wp_update);
+	}
+	
 
-	kred('<pre>wp_reserve ' . var_export($wp_reserve, true) . '</pre>');
-	kred('<pre>wp_update ' . var_export($wp_update, true) . '</pre>');
-	kred('<pre>wp_beyond ' . var_export($wp_beyond, true) . '</pre>');
+
+	// kred('<pre>wp_reserve ' . var_export($wp_reserve, true) . '</pre>');
+	// kred('<pre>wp_update ' . var_export($wp_update, true) . '</pre>');
+	// kred('<pre>wp_beyond ' . var_export($wp_beyond, true) . '</pre>');
 
 	$jk2wp_diff =[
 	'jk_reserve' => $jk_reserve,
@@ -243,14 +247,14 @@ function jws_get_wp_posts(){
 
 
 
-function jws_get_jk_posts(){
+function _jws_get_jk_posts(){
 	$jws = new JekyllWordpressSync();
 	$posts = $jws -> get_posts();
 
 	return $posts;
 }
 
-function _jws_get_jk_posts(){
+function jws_get_jk_posts(){
 	$str = file_get_contents(dirname( __FILE__ ) . '/b.json');
 	$posts = json_decode($str);
 
