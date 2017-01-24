@@ -1,30 +1,45 @@
 <?php
 
 
-
 function jws_jk2wp_sync(){
-
 	$insert=jws_jk2wp_get_insert();
-	//echo 'insert <pre>' . var_export($insert, true) . '</pre>';
+	$inserted=[];
 
-	foreach ($insert as $insert_index => $insert_post) {
-		$wp_post_inserted_id = wp_insert_post( $insert_post, true );
+	if (!empty($insert)) {
+		foreach ($insert as $insert_index => $insert_post) {
+			$wp_post_inserted_id = wp_insert_post( $insert_post, true );
 
-		if ($wp_post_inserted_id ) {
-			$message = 'Sync success!';
-		}else{
-			$message = 'Sync fail!';
+			if ($wp_post_inserted_id ) {
+				$inserted[]=get_post( $wp_post_inserted_id );
+				$message = 'Sync success!';
+			}else{
+				$message = 'Sync fail!';
+			}
 		}
+		jws_jk2wp_result($inserted);
+	}else{
+		$message = 'No post need to sync!';
 	}
+	
 	
 
 	kbn($message);
+}
+
+function jws_jk2wp_result($sync_ok){
+	echo '<div class="postbox">Synced list:<br>';
+	foreach ($sync_ok as $key => $post) {
+		echo $post->post_title.'<br>';
+	}
+	echo '</div>';
 }
 
 function jws_jk2wp_get_insert(){
 	$Parsedown = new Parsedown();
 	$diff=jws_jk2wp_get_diff();
 	$insert=[];
+
+
 
 	foreach ($diff['jk_add'] as $jk_add_index => $jk_posts_index) {
 		$jk_post=$diff['jk_posts'][$jk_posts_index];
@@ -36,10 +51,12 @@ function jws_jk2wp_get_insert(){
 		$file=jws_get_api_obj($jk_post->_links->self);
 		$post_content_raw=jws_base64_to_md($file->content);
 		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
+		$post_date = jws_get_jk_post_date($jk_post->name);
 
 		$my_post = array(
 			'post_title'    => jws_cut_jk_filename($jk_post->name),
 			'post_content'  => $post_content,
+			'post_date'  => $post_date,
 			'post_status'   => 'publish',
 			'meta_input'   => array(
 				JWS_POST_META_SHA_KEY => $jk_post->sha,
@@ -51,19 +68,14 @@ function jws_jk2wp_get_insert(){
 	}
 
 	foreach ($diff['jk_update'] as $jk_update_index => $jk_posts_index) {
-
 		$wp_post_name_exist_index = $diff['wp_update'][$jk_update_index];
 		$post_id=$diff['wp_posts'][$wp_post_name_exist_index] -> ID;
-
-		kred($post_id);
 			
-
 		$jk_post=$diff['jk_posts'][$jk_posts_index];
 		$post_title=jws_cut_jk_filename($jk_post->name);
 		if ($post_title == JWS_JK_WRONG_POST_NAME) {
 			continue;
 		}
-
 
 		$file=jws_get_api_obj($jk_post->_links->self);
 		$post_content_raw=jws_base64_to_md($file->content);
@@ -92,12 +104,15 @@ function jws_base64_to_md($str){
 	$raw_md=base64_decode ($str,true);
 
 	$needle	='---';
-	$pos1 = strpos($raw_md, $needle);
-	$pos2 = strpos($raw_md, $needle, $pos1 + strlen($needle));
+	if ((strtok(ltrim($raw_md), "\n") == $needle) || (strtok(ltrim($raw_md), "\n\r") == $needle) ) {
+		$pos1 = strpos($raw_md, $needle);
+		$pos2 = strpos($raw_md, $needle, $pos1 + strlen($needle));
+		$md_without_frontmatter=substr($raw_md , $pos2 + 3);
+	}else{
+		$md_without_frontmatter = $raw_md;
+	}
 
-	$md_without_frontmatter=substr($raw_md , $pos2 + 3);
-
-	return ltrim($md_without_frontmatter);
+	return ltrim($md_without_frontmatter); 
 }
 
 function jws_jk2wp_show_diff(){
@@ -109,6 +124,8 @@ function jws_jk2wp_show_diff(){
 	<?php
 
 	$diff=jws_jk2wp_get_diff();
+
+	//kred($diff['jk_add'] );
 
 	echo '<div class="postbox">Will add jk:<br>';
 	foreach ($diff['jk_add'] as $index => $posts_index) {	
@@ -135,10 +152,10 @@ function jws_jk2wp_show_diff(){
 	echo '</div>';
 
 
-	echo 'Will add jk:<pre>' . var_export($diff['jk_add'], true) . '</pre>';
-	echo 'Will update jk-wp:<pre>' . var_export($diff['jk_update'], true) . '</pre>';
-	echo 'Keep reserve jk-wp:<pre>' . var_export($diff['jk_reserve'], true) . '</pre>';
-	echo 'Not touch wp:<pre>' . var_export($diff['wp_beyond'], true) . '</pre>';
+	// echo 'Will add jk:<pre>' . var_export($diff['jk_add'], true) . '</pre>';
+	// echo 'Will update jk-wp:<pre>' . var_export($diff['jk_update'], true) . '</pre>';
+	// echo 'Keep reserve jk-wp:<pre>' . var_export($diff['jk_reserve'], true) . '</pre>';
+	// echo 'Not touch wp:<pre>' . var_export($diff['wp_beyond'], true) . '</pre>';
 
 }
 
@@ -158,6 +175,19 @@ function jws_cut_jk_filename($jk_filename){
 
 	return $jk_post_name;
 }
+
+function jws_get_jk_post_date($jk_filename){
+
+	$jk_post_date = 'not_set';
+	$jekyll_post_pattern='/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/';
+
+	if ( 1 == preg_match($jekyll_post_pattern,$jk_filename,$matches) ) {
+		$jk_post_date=$matches[0];
+	}
+
+	return $jk_post_date;
+}
+
 
 
 function jws_jk2wp_get_diff(){
@@ -281,14 +311,14 @@ function jws_get_wp_posts(){
 
 
 
-function _jws_get_jk_posts(){
+function jws_get_jk_posts(){
 	$jws = new JekyllWordpressSync();
 	$posts = $jws -> get_posts();
 
 	return $posts;
 }
 
-function jws_get_jk_posts(){
+function _jws_get_jk_posts(){
 	$str = file_get_contents(dirname( __FILE__ ) . '/b.json');
 	$posts = json_decode($str);
 
@@ -383,24 +413,25 @@ function jws_setting_page() {
 		wp_die( __('You do not have sufficient permissions to access this page.') );
 	}
 
-    // variables for the field and option names 
-	$opt_name = 'jws_repo_name';
+	$opt_name = jws_get_opt_name();
 	$hidden_field_name = 'jws_submit_hidden';
-	$data_field_name = $opt_name;
 
-    // Read in existing option value from database
-	$opt_val = get_option( $opt_name );
 
-    // See if the user has posted us some information
-    // If they did, this hidden field will be set to 'Y'
 	if( isset($_POST[ $hidden_field_name ]) && $_POST[ $hidden_field_name ] == 'Y' ) {
-		$opt_val = $_POST[ $data_field_name ];
-		update_option( $opt_name, $opt_val );
+		update_option( $opt_name['repo'], $_POST[ $opt_name['repo'] ] );
+		update_option( $opt_name['token'], $_POST[ $opt_name['token'] ]);
+		update_option( $opt_name['secret'], $_POST[ $opt_name['secret'] ]);
+
 		?>
 		<div class="updated"><p><strong><?php _e('settings saved.', 'jws' ); ?></strong></p></div>
 		<?php
 	}
 
+	// Read in existing option value from database
+	$repo = get_option( $opt_name['repo'] );
+	$token = get_option( $opt_name['token'] );
+	$secret = get_option( $opt_name['secret'] );
+	
 	echo '<div class="wrap">';
 	echo "<h2>" . __( 'Jekyll Wordpress Sync Settings', 'jws' ) . "</h2>";
 	?>
@@ -409,7 +440,15 @@ function jws_setting_page() {
 		<input type="hidden" name="<?php echo $hidden_field_name; ?>" value="Y">
 
 		<p><?php _e("Repo name:", 'jws' ); ?> 
-			<input type="text" name="<?php echo $data_field_name; ?>" value="<?php echo $opt_val; ?>" size="20">
+			<input type="text" name="<?php echo $opt_name['repo']; ?>" value="<?php echo $repo; ?>" size="20">
+		</p><hr />
+
+		<p><?php _e("Github Token:", 'jws' ); ?> 
+			<input type="text" name="<?php echo $opt_name['token']; ?>" value="<?php echo $token; ?>" size="20">
+		</p><hr />
+
+		<p><?php _e("Webhook Secret:", 'jws' ); ?> 
+			<input type="text" name="<?php echo $opt_name['secret']; ?>" value="<?php echo $secret; ?>" size="64">
 		</p><hr />
 
 		<p class="submit">

@@ -1,17 +1,15 @@
 <?php
 
-// jekyll on github, ex: github_user/repo_name
-define("JK_WP_SYNC_REPO", "");
+// jekyll on github
+//define("JK_WP_SYNC_REPO", "");
 
 // webhook sec
-define("JK_WP_SYNC_SECRET", "");
+//define("JK_WP_SYNC_SECRET", "");
+
+// break 60 per-hour limit
+//define("JWS_GITHUB_TOKEN", "");
 
 
-
-// option
-
-//break 60 per-hour limit
-define("JWS_GITHUB_TOKEN", "");
 // auto md2html when save to database
 define("JWS_AUTO_MD2HTML", true);
 
