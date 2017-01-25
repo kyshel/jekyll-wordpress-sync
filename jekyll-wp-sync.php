@@ -23,10 +23,9 @@ function jws_show_data(){
 
 
 	//echo 'wp <pre>' . var_export(jws_get_wp_posts(), true) . '</pre>';
-
 	//echo 'jk <pre>' . var_export(jws_get_jk_posts(), true) . '</pre>';
 
-	jws_jk2wp_show_diff();
+	//jws_jk2wp_show_diff();
 
 	//jws_jk2wp_sync();
 
@@ -46,9 +45,7 @@ function jws_get_settings(){
 
 	define("JK_WP_SYNC_REPO",get_option($opt_name['repo']) );
 	define("JWS_GITHUB_TOKEN", get_option($opt_name['token']));
-	define("JK_WP_SYNC_SECRET",get_option($opt_name['secret']));
-
-
+	//define("JK_WP_SYNC_SECRET",get_option($opt_name['secret']));
 }
 
 

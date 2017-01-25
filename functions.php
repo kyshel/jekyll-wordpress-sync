@@ -20,10 +20,16 @@ function jws_jk2wp_sync(){
 	}else{
 		$message = 'No post need to sync!';
 	}
-	
-	
 
-	kbn($message);
+	?>
+	<form method="post" action="">	
+		<a href="edit.php"><button type="button" class="button">Done</button></a>
+	</form>
+	<br>
+	<div class="updated"><p><strong><?php _e($message, 'jws' ); ?></strong></p></div>
+
+	<?php
+	//kbn($message);
 }
 
 function jws_jk2wp_result($sync_ok){
@@ -118,9 +124,11 @@ function jws_base64_to_md($str){
 function jws_jk2wp_show_diff(){
 
 	?>
-	<form method="post" action="">
-		<button type="submit" name="jws_jk2wp_sync">jk2wp_sync</button>
+	<form method="post" action="">	
+		<button type="submit" name="jws_jk2wp_sync" class="button button-primary">Sync Now</button>
+		<a href="index.php"><button type="button" class="button">Cancel</button></a>
 	</form>
+	<br>
 	<?php
 
 	$diff=jws_jk2wp_get_diff();
@@ -328,16 +336,29 @@ function _jws_get_jk_posts(){
 
 
 function jws_get_api_obj($file_link){
-	$opts = 
-	[
-	'http' => [
-	'method' => 'GET',
-	'header' => [
-	'User-Agent: PHP',
-	'Authorization:token '.JWS_GITHUB_TOKEN
-	]
-	]
-	];
+	if (!empty(JWS_GITHUB_TOKEN)) {
+		$opts = 
+		[
+		'http' => [
+		'method' => 'GET',
+		'header' => [
+		'User-Agent: PHP',
+		'Authorization:token '.JWS_GITHUB_TOKEN
+		]
+		]
+		];
+	}else{
+		$opts = 
+		[
+		'http' => [
+		'method' => 'GET',
+		'header' => [
+		'User-Agent: PHP'
+		]
+		]
+		];
+	}
+	
 
 	$context = stream_context_create($opts);
 	$file_str=file_get_contents($file_link, false, $context);
@@ -360,11 +381,11 @@ function jws_get_api_obj($file_link){
 
 function jws_add_menu() {
 
-	add_menu_page( 'Page: Jekyll-WP-Sync', 'Jekyll-WP-Sync', 'manage_options', 'jws_menu', 'jws_jk2wp_page' );
+	add_menu_page( 'Jekyll-WP-Sync', 'Jekyll-WP-Sync', 'manage_options', 'jws_menu', 'jws_jk2wp_page' );
 
 	// the fifth param 'jws_menu' was compromise
-	add_submenu_page( 'jws_menu', 'Jekyll -> WP Page', 'Jekyll->WP', 'manage_options', 'jws_menu', 'jws_jk2wp_page');
-	add_submenu_page( 'jws_menu', 'Jekyll-WP-Sync Setting', 'Setting', 'manage_options', 'jws_setting', 'jws_setting_page');
+	add_submenu_page( 'jws_menu', 'JWS Sync', 'Sync', 'manage_options', 'jws_menu', 'jws_jk2wp_page');
+	add_submenu_page( 'jws_menu', 'JWS Setting', 'Setting', 'manage_options', 'jws_setting', 'jws_setting_page');
 }
 
 function jws_jk2wp_page() {
@@ -375,29 +396,36 @@ function jws_jk2wp_page() {
 	}
 
 
-	if( isset($_POST['jws_jk2wp_analyze'])) {
+
+	echo '<div class="wrap">';
+	echo "<h2>" . __( 'Jekyll Worpdress Sync', 'jws' ) . "</h2>";
+	?>
+
+
+
+
+		
+
+	<?php
+	if( empty($_POST) ) {
 		?>
-		<div class="updated"><p><strong><?php _e('Jekyll -> Wordpress Analyze Finish!', 'jws' ); ?></strong></p></div>
+		<form method="post" action="">
+			<button type="submit" name="jws_jk2wp_analyze" class="button" value="1">Analyze</button>
+		</form>
 		<?php
 	}
 
-
-
-
-
-	echo '<div class="wrap">';
-	echo "<h2>" . __( 'Jekyll -> Worpdress', 'jws' ) . "</h2>";
-	?>
-
-	<form method="post" action="">
-		<button type="submit" name="jws_jk2wp_analyze">jk2wp_analyze</button>
-	</form>
-
-	<?php
-	if( isset($_POST['jws_jk2wp_analyze'])) {
-		//require_once(dirname( __FILE__ ) . '/import.php');
-		jws_show_data();
+	if( isset($_POST['jws_jk2wp_analyze'])  ) {
+		if (JK_WP_SYNC_REPO == '') {
+			echo 'You did not set repo in settings, please <a href="admin.php?page=jws_setting">click here</a> to set!';
+			die();
+		}
+		?>
+		<div class="updated"><p><strong><?php _e('Analyze Finish, you can sync now ! ', 'jws' ); ?></strong></p></div>
+		<?php
+		jws_jk2wp_show_diff();	
 	}
+
 	if( isset($_POST['jws_jk2wp_sync'])) {
 		jws_jk2wp_sync();
 	}
@@ -439,17 +467,41 @@ function jws_setting_page() {
 	<form name="form1" method="post" action="">
 		<input type="hidden" name="<?php echo $hidden_field_name; ?>" value="Y">
 
-		<p><?php _e("Repo name:", 'jws' ); ?> 
-			<input type="text" name="<?php echo $opt_name['repo']; ?>" value="<?php echo $repo; ?>" size="20">
-		</p><hr />
+		<table class="form-table">
+			<tr>
+				<th><?php _e("Repository", 'jws' ); ?></th>
+				<td>
+					<input type="text" name="<?php echo $opt_name['repo']; ?>" value="<?php echo get_option( $opt_name['repo'] ); ?>" size="20">
+					<p class="description">
+						Format:  <code>[OWNER]/[REPOSITORY]</code>
+						Example:  <code>kyshel/kyshel.github.io</code> 
+					</p>
+				</td>
+			</tr>
 
-		<p><?php _e("Github Token:", 'jws' ); ?> 
-			<input type="text" name="<?php echo $opt_name['token']; ?>" value="<?php echo $token; ?>" size="20">
-		</p><hr />
+			<tr>
+				<th><?php _e("Github Token", 'jws' ); ?></th>
+				<td>
+					<input type="text" name="<?php echo $opt_name['token']; ?>" value="<?php echo get_option( $opt_name['token'] ); ?>" size="40">
+					<p class="description">
+						A <a href="https://github.com/settings/tokens/new">personal oauth token</a> , aims to improve the maximum number of requests that the consumer is permitted to make per hour, from 60/h to 5000/h.
+					</p>
+				</td>
+			</tr>
 
-		<p><?php _e("Webhook Secret:", 'jws' ); ?> 
-			<input type="text" name="<?php echo $opt_name['secret']; ?>" value="<?php echo $secret; ?>" size="64">
-		</p><hr />
+			<!--tr>
+				<th><?php _e("Webhook Secret:", 'jws' ); ?></th>
+				<td>
+					<input type="text" name="<?php echo $opt_name['secret']; ?>" value="<?php echo get_option( $opt_name['secret'] ); ?>" size="20">
+					<p class="description">
+						The webhook's secret phrase.
+					</p>
+				</td>
+			</tr-->
+
+
+
+		</table>
 
 		<p class="submit">
 			<input type="submit" name="Submit" class="button-primary" value="<?php esc_attr_e('Save Changes') ?>" />

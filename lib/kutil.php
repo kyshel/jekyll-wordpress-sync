@@ -23,7 +23,3 @@ function kgreen($var = 'U did not set var',$var_name=''){
 }
 
 
-
-function k_load_css(){
-	echo '';
-}
