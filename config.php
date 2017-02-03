@@ -16,4 +16,3 @@ define("JWS_AUTO_MD2HTML", true);
 // dev
 define("JWS_POST_META_SHA_KEY", "_jws_jk_sha");
 define("JWS_JK_WRONG_POST_NAME", "NOT_VALID");
-

@@ -1,9 +1,9 @@
 <?php
-require_once('config.php');
-require_once('functions.php');
+require_once('load.php');
+
 
 if (is_secret_valid()) {
-	echo "your identity has verified \n";
+	echo "Your identity has verified \n";
 }else{
 	echo "You are banned!";
 	die();
@@ -18,23 +18,5 @@ file_put_contents('a.json', $json_string);
 
 $commit_id=$obj_data->head_commit ? $obj_data->head_commit->id : null;
 echo 'commit_id is: '.$commit_id.'<br>';
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-?>
-
 
 
