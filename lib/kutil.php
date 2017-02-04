@@ -1,5 +1,11 @@
 <?php
 
+// kyshel_big_noise
+function kbn($str,$var_name =''){
+	echo '<h1>'.$var_name.' ->'.$str.'-<</h1>';
+}
+
+
 function kred($var = 'U did not set var',$var_name=''){
 	if (is_string($var)  ) {
 		echo '<div style="color:red;">'.$var_name.' <pre>'.$var.'</pre></div>';
@@ -23,3 +29,4 @@ function kgreen($var = 'U did not set var',$var_name=''){
 }
 
 
+?>

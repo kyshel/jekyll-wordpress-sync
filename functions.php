@@ -19,22 +19,17 @@ function jws_jk2wp_sync(){
 		jws_jk2wp_result($inserted);
 	}else{
 		$message = 'No post need to sync!';
-	}
+	}?>
 
-	?>
-	<form method="post" action="">	
-		<a href="edit.php"><button type="button" class="button">Done</button></a>
-	</form>
-	<br>
-	<div class="updated"><p><strong><?php _e($message, 'jws' ); ?></strong></p></div>
+	<div ><p><strong><?php _e($message, 'jws' ); ?></strong></p></div>
 
-	<?php
-	//kbn($message);
+<?php
+	wp_die();
 }
 
 function jws_jk2wp_result($sync_ok){
 	echo '<div class="postbox">Synced list:<br>';
-	foreach ($sync_ok as $key => $post) {
+	foreach (array_reverse($sync_ok)  as $key => $post) {
 		echo $post->post_title.'<br>';
 	}
 	echo '</div>';
@@ -83,6 +78,8 @@ function jws_jk2wp_get_insert(){
 			continue;
 		}
 
+		$post_date = jws_get_jk_post_date($jk_post->name);
+
 		$file=jws_get_api_obj($jk_post->_links->self);
 		$post_content_raw=jws_base64_to_md($file->content);
 		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
@@ -91,6 +88,7 @@ function jws_jk2wp_get_insert(){
 			'ID' => $post_id,
 			'post_title'    => $post_title,
 			'post_content'  => $post_content,
+			'post_date'  => $post_date,
 			'post_status'   => 'publish',
 			'meta_input'   => array(
 				JWS_POST_META_SHA_KEY => $jk_post->sha,
@@ -123,30 +121,39 @@ function jws_base64_to_md($str){
 
 function jws_jk2wp_show_diff(){
 
-	?>
-	<form method="post" action="">	
-		<button type="submit" name="jws_jk2wp_sync" class="button button-primary">Sync Now</button>
-		<a href="index.php"><button type="button" class="button">Cancel</button></a>
-	</form>
-	<br>
-	<?php
+		if (JK_WP_SYNC_REPO == '') {
+			echo 'You did not set repo in settings, please <a href="admin.php?page=jws_setting">click here</a> to set!';
+			die();
+		}?>
+
+		<div><p><strong><?php _e('Analyze result:', 'jws' ); ?></strong></p></div>
+
+<?php
 
 	$diff=jws_jk2wp_get_diff();
 
 	//kred($diff['jk_add'] );
 
-	echo '<div class="postbox">Will add jk:<br>';
-	foreach ($diff['jk_add'] as $index => $posts_index) {	
-		echo $diff['jk_posts'][$posts_index]->name.'<br>';
+	echo '<div class="postbox">Will add:<br>';
+	if (!empty($diff['jk_add'])) {
+		foreach ($diff['jk_add'] as $index => $posts_index) {	
+			echo $diff['jk_posts'][$posts_index]->name.'<br>';
+		}
+	}else{
+		echo 'None';
 	}
 	echo '</div>';
 
-	echo '<div class="postbox">Will update jk-wp:<br>';
-	foreach ($diff['jk_update'] as $index => $posts_index) {		
-		echo $diff['jk_posts'][$posts_index]->name.'<br>';		
+	echo '<div class="postbox">Will update:<br>';
+	if (!empty($diff['jk_update'])) {
+		foreach ($diff['jk_update'] as $index => $posts_index) {	
+			echo $diff['jk_posts'][$posts_index]->name.'<br>';
+		}
+	}else{
+		echo 'None';
 	}
 	echo '</div>';
-
+/*
 	echo '<div class="postbox">Keep reserve jk-wp:<br>';
 	foreach ($diff['jk_reserve'] as $index => $posts_index) {
 		echo $diff['jk_posts'][$posts_index]->name.'<br>';
@@ -158,13 +165,14 @@ function jws_jk2wp_show_diff(){
 		echo $diff['wp_posts'][$posts_index]->post_title.'<br>';
 	}
 	echo '</div>';
-
+*/
 
 	// echo 'Will add jk:<pre>' . var_export($diff['jk_add'], true) . '</pre>';
 	// echo 'Will update jk-wp:<pre>' . var_export($diff['jk_update'], true) . '</pre>';
 	// echo 'Keep reserve jk-wp:<pre>' . var_export($diff['jk_reserve'], true) . '</pre>';
 	// echo 'Not touch wp:<pre>' . var_export($diff['wp_beyond'], true) . '</pre>';
 
+	wp_die();
 }
 
 
@@ -395,41 +403,20 @@ function jws_jk2wp_page() {
 		wp_die( __('You do not have sufficient permissions to access this page.') );
 	}
 
-
-
 	echo '<div class="wrap">';
-	echo "<h2>" . __( 'Jekyll Worpdress Sync', 'jws' ) . "</h2>";
-	?>
+	echo "<h2>" . __( 'Jekyll Worpdress Sync', 'jws' ) . "</h2>";?>
 
+	<br>
+	<button type="button" id="jws_jk2wp_analyze" class="button" >Analyze</button>
+	<button type="button" id="jws_jk2wp_sync" class="button button-primary" style="display: none;">Sync Now</button>
+	<a href="admin.php?page=jws_menu" ><button type="button" class="button" id="jws_jk2wp_cancel" style="display: none;">Cancel</button></a>
+	<a href="edit.php"><button type="button" class="button" id="jws_jk2wp_done" style="display: none;">Done</button></a>
 
+	<span class="spinner" id="jws_jk2wp_analyze_spinner" style="float:initial;"></span>
 
+	<div id="jws_ajax_response"></div>
 
-		
-
-	<?php
-	if( empty($_POST) ) {
-		?>
-		<form method="post" action="">
-			<button type="submit" name="jws_jk2wp_analyze" class="button" value="1">Analyze</button>
-		</form>
-		<?php
-	}
-
-	if( isset($_POST['jws_jk2wp_analyze'])  ) {
-		if (JK_WP_SYNC_REPO == '') {
-			echo 'You did not set repo in settings, please <a href="admin.php?page=jws_setting">click here</a> to set!';
-			die();
-		}
-		?>
-		<div class="updated"><p><strong><?php _e('Analyze Finish, you can sync now ! ', 'jws' ); ?></strong></p></div>
-		<?php
-		jws_jk2wp_show_diff();	
-	}
-
-	if( isset($_POST['jws_jk2wp_sync'])) {
-		jws_jk2wp_sync();
-	}
-
+<?php
 	echo '</div>'; // div-wrap
 }
 
@@ -442,18 +429,22 @@ function jws_setting_page() {
 	}
 
 	$opt_name = jws_get_opt_name();
-	$hidden_field_name = 'jws_submit_hidden';
 
 
-	if( isset($_POST[ $hidden_field_name ]) && $_POST[ $hidden_field_name ] == 'Y' ) {
-		update_option( $opt_name['repo'], $_POST[ $opt_name['repo'] ] );
-		update_option( $opt_name['token'], $_POST[ $opt_name['token'] ]);
-		update_option( $opt_name['secret'], $_POST[ $opt_name['secret'] ]);
 
-		?>
-		<div class="updated"><p><strong><?php _e('settings saved.', 'jws' ); ?></strong></p></div>
-		<?php
+	if (isset($_POST[ $opt_name['repo'] ]) && isset($_POST[ $opt_name['token'] ]) ) {
+		if( !empty($_POST[ $opt_name['repo'] ]) && !empty($_POST[ $opt_name['token'] ]) ) {
+
+			update_option( $opt_name['repo'], $_POST[ $opt_name['repo'] ] );
+			update_option( $opt_name['token'], $_POST[ $opt_name['token'] ]);
+			//update_option( $opt_name['secret'], $_POST[ $opt_name['secret'] ]);
+
+			?><div class="updated"><p><strong><?php _e('Settings saved.', 'jws' ); ?></strong></p></div><?php
+		}else{
+			?><div class="error"><p><strong><?php _e('Repository and Github Token must not empty!', 'jws' ); ?></strong></p></div><?php
+		}
 	}
+
 
 	// Read in existing option value from database
 	$repo = get_option( $opt_name['repo'] );
@@ -465,13 +456,13 @@ function jws_setting_page() {
 	?>
 
 	<form name="form1" method="post" action="">
-		<input type="hidden" name="<?php echo $hidden_field_name; ?>" value="Y">
+
 
 		<table class="form-table">
 			<tr>
 				<th><?php _e("Repository", 'jws' ); ?></th>
 				<td>
-					<input type="text" name="<?php echo $opt_name['repo']; ?>" value="<?php echo get_option( $opt_name['repo'] ); ?>" size="20">
+					<input type="text" name="<?php echo $opt_name['repo']; ?>" value="<?php echo get_option( $opt_name['repo'] ); ?>" size="20" required>
 					<p class="description">
 						Format:  <code>[OWNER]/[REPOSITORY]</code>
 						Example:  <code>kyshel/kyshel.github.io</code> 
@@ -482,7 +473,7 @@ function jws_setting_page() {
 			<tr>
 				<th><?php _e("Github Token", 'jws' ); ?></th>
 				<td>
-					<input type="text" name="<?php echo $opt_name['token']; ?>" value="<?php echo get_option( $opt_name['token'] ); ?>" size="40">
+					<input type="text" name="<?php echo $opt_name['token']; ?>" value="<?php echo get_option( $opt_name['token'] ); ?>" size="40" required>
 					<p class="description">
 						A <a href="https://github.com/settings/tokens/new">personal oauth token</a> , aims to improve the maximum number of requests that the consumer is permitted to make per hour, from 60/h to 5000/h.
 					</p>
@@ -507,14 +498,11 @@ function jws_setting_page() {
 			<input type="submit" name="Submit" class="button-primary" value="<?php esc_attr_e('Save Changes') ?>" />
 		</p>
 	</form>
-	<?php
+<?php
 	echo '</div>'; // div-wrap
 }
 
-// kyshel_big_noise
-function kbn($str,$var_name =''){
-	echo '<h1>'.$var_name.' ->'.$str.'-<</h1>';
-}
+
 
 
 
