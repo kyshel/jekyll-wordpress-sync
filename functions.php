@@ -345,7 +345,7 @@ function _jws_get_jk_posts(){
 
 
 function jws_get_api_obj($file_link){
-	if (!empty(JWS_GITHUB_TOKEN)) {
+	if ( JWS_GITHUB_TOKEN != '' ) {
 		$opts = 
 		[
 		'http' => [
