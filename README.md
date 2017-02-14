@@ -9,7 +9,7 @@ All the post data was transferred by GitHub API.
 
 
 ## Usage
-1. Download [the repo](https://github.com/kyshel/jekyll-wordpress-sync/archive/master.zip),Unzip it to `wordpress\wp-content\plugins\jekyll-wordpress-sync`
+1. Download [the repo](https://github.com/kyshel/jekyll-wordpress-sync/archive/master.zip), unzip it to `wordpress\wp-content\plugins\jekyll-wordpress-sync`
 2. Open Dashboard -> Plugins , activate Jekyll Wordpress Sync
 3. Open Dashboard -> Jekyll-WP-Sync -> Setting , set the **Repository** and [**Github Token**](https://github.com/blog/1509-personal-api-tokens)
 4. Open Dashboard -> Jekyll-WP-Sync -> Sync, click **Analyze** 
