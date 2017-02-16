@@ -1,4 +1,4 @@
-=== Jekyll Wordpress Sync ===
+=== WP Jekyll Sync ===
 Contributors: kyshel
 Donate link: https://paypal.me/kyshel2016
 Tags: jekyll, import
