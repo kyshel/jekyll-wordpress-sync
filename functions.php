@@ -1,6 +1,19 @@
 <?php
 
 
+function pre_dump($var = 'U did not set var',$var_name=''){
+	if (is_string($var)  ) {
+		echo '<div style="color:red;">'.$var_name.' <pre>'.$var.'</pre></div>';
+	}elseif (is_object($var)) {
+		echo '<div style="color:red;">'.$var_name.' '.'<pre>' . var_export($var, true) . '</pre>'.'</div>';
+	}elseif (is_array($var)) {
+		echo '<div style="color:red;">'.$var_name.' '.'<pre>' . var_export($var, true) . '</pre>'.'</div>';
+	}else{
+		echo '<div style="color:red;">'.$var_name.' '.'<pre>' . var_export($var, true) . '</pre>'.'</div>';
+	}
+	
+}
+
 function jws_jk2wp_sync(){
 	$insert=jws_jk2wp_get_insert();
 	$inserted=[];
@@ -16,6 +29,7 @@ function jws_jk2wp_sync(){
 				$message = 'Sync fail!';
 			}
 		}
+		echo '<br>';
 		jws_jk2wp_result($inserted);
 	}else{
 		$message = 'No post need to sync!';
@@ -132,7 +146,7 @@ function jws_jk2wp_show_diff(){
 
 	$diff=jws_jk2wp_get_diff();
 
-	//kred($diff['jk_add'] );
+	//pre_dump($diff['jk_add'] );
 
 	echo '<div class="postbox">Will add:<br>';
 	if (!empty($diff['jk_add'])) {
@@ -294,9 +308,9 @@ function jws_jk2wp_get_diff(){
 	
 
 
-	// kred('<pre>wp_reserve ' . var_export($wp_reserve, true) . '</pre>');
-	// kred('<pre>wp_update ' . var_export($wp_update, true) . '</pre>');
-	// kred('<pre>wp_beyond ' . var_export($wp_beyond, true) . '</pre>');
+	// pre_dump('<pre>wp_reserve ' . var_export($wp_reserve, true) . '</pre>');
+	// pre_dump('<pre>wp_update ' . var_export($wp_update, true) . '</pre>');
+	// pre_dump('<pre>wp_beyond ' . var_export($wp_beyond, true) . '</pre>');
 
 	$jk2wp_diff =[
 	'jk_reserve' => $jk_reserve,
