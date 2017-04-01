@@ -16,6 +16,7 @@ All the post data was transferred by GitHub API.
 5. If analyze result is satisfied, click **Sync Now** to finish sync
 
 ## Info
+- Require PHP >= 5.4
 - [A simple video guide](https://www.youtube.com/watch?v=nUq85s_qrVk&feature=youtu.be)
 - Repository name must match format: `[OWNER]/[REPOSITORY]` Example: `kyshel/kyshel.github.io`
 - Sync time depend on **wordpress server request&get time** to github.com
