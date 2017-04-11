@@ -58,19 +58,25 @@ function jws_jk2wp_get_insert(){
 
 	foreach ($diff['jk_add'] as $jk_add_index => $jk_posts_index) {
 		$jk_post=$diff['jk_posts'][$jk_posts_index];
-		$post_title=jws_cut_jk_filename($jk_post->name);
-		if ($post_title == JWS_JK_WRONG_POST_NAME) {
+
+		
+		$file=jws_get_api_obj($jk_post->_links->self);
+		$post_raw=jws_base64_to_md($file->content);
+
+		$title_by_filename=jws_cut_jk_filename($jk_post->name);
+		if ($title_by_filename == JWS_JK_WRONG_POST_NAME) {
 			continue;
 		}
-
-		$file=jws_get_api_obj($jk_post->_links->self);
-		$post_content_raw=jws_base64_to_md($file->content);
-		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
+		$title_in_frontmatter=jws_get_title_in_frontmatter($post_raw);
+		$post_title = JWS_USE_TITLE_IN_FRONTMATTER ? ($title_in_frontmatter != NULL ? $title_in_frontmatter : $title_by_filename) : $title_by_filename;
+		
+		$post_content_md=jws_get_md_without_frontmatter($post_raw);
+		$post_content_save= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_md) : $post_content_md ;
 		$post_date = jws_get_jk_post_date($jk_post->name);
 
 		$my_post = array(
-			'post_title'    => jws_cut_jk_filename($jk_post->name),
-			'post_content'  => $post_content,
+			'post_title'    => $post_title,
+			'post_content'  => $post_content_save,
 			'post_date'  => $post_date,
 			'post_status'   => 'publish',
 			'meta_input'   => array(
@@ -87,21 +93,25 @@ function jws_jk2wp_get_insert(){
 		$post_id=$diff['wp_posts'][$wp_post_name_exist_index] -> ID;
 			
 		$jk_post=$diff['jk_posts'][$jk_posts_index];
-		$post_title=jws_cut_jk_filename($jk_post->name);
-		if ($post_title == JWS_JK_WRONG_POST_NAME) {
-			continue;
-		}
-
-		$post_date = jws_get_jk_post_date($jk_post->name);
 
 		$file=jws_get_api_obj($jk_post->_links->self);
-		$post_content_raw=jws_base64_to_md($file->content);
-		$post_content= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_raw) : $post_content_raw ;
+		$post_raw=jws_base64_to_md($file->content);
+
+		$title_by_filename=jws_cut_jk_filename($jk_post->name);
+		if ($title_by_filename == JWS_JK_WRONG_POST_NAME) {
+			continue;
+		}
+		$title_in_frontmatter=jws_get_title_in_frontmatter($post_raw);
+		$post_title = JWS_USE_TITLE_IN_FRONTMATTER ? ($title_in_frontmatter != NULL ? $title_in_frontmatter : $title_by_filename) : $title_by_filename;
+		
+		$post_content_md=jws_get_md_without_frontmatter($post_raw);
+		$post_content_save= JWS_AUTO_MD2HTML ? $Parsedown->text($post_content_md) : $post_content_md ;
+		$post_date = jws_get_jk_post_date($jk_post->name);
 
 		$my_post = array(
 			'ID' => $post_id,
 			'post_title'    => $post_title,
-			'post_content'  => $post_content,
+			'post_content'  => $post_content_save,
 			'post_date'  => $post_date,
 			'post_status'   => 'publish',
 			'meta_input'   => array(
@@ -121,17 +131,48 @@ function jws_jk2wp_get_insert(){
 function jws_base64_to_md($str){
 	$raw_md=base64_decode ($str,true);
 
+
+	return $raw_md; 
+}
+
+
+function jws_get_frontmatter($raw_md){
+	$frontmatter = '';
 	$needle	='---';
 	if ((strtok(ltrim($raw_md), "\n") == $needle) || (strtok(ltrim($raw_md), "\n\r") == $needle) ) {
 		$pos1 = strpos($raw_md, $needle);
 		$pos2 = strpos($raw_md, $needle, $pos1 + strlen($needle));
-		$md_without_frontmatter=substr($raw_md , $pos2 + 3);
-	}else{
-		$md_without_frontmatter = $raw_md;
+		$frontmatter=substr($raw_md , 0,$pos2 + 3);
 	}
 
-	return ltrim($md_without_frontmatter); 
+	return $frontmatter; 
 }
+
+function jws_get_md_without_frontmatter($raw_md){
+	$frontmatter=jws_get_frontmatter($raw_md);
+	$md_without_frontmatter = $frontmatter == NULL ? $raw_md : ltrim(str_replace($frontmatter, "", $raw_md));
+	return $md_without_frontmatter;
+}
+
+function jws_get_title_in_frontmatter($raw_md){
+	$title = NULL;
+	$frontmatter = jws_get_frontmatter($raw_md);
+	//echo '<pre> frontmatter: '.var_export($matches,true).'</pre>';
+	if ($frontmatter == NULL) {
+		return $title;
+	}
+	$matches = [];
+	preg_match('/title\s*:\s*.*/',$frontmatter, $matches);
+	//echo '<pre> matches: '.var_export($matches,true).'</pre>';
+	if (isset($matches[0])) {
+		$title = rtrim(preg_replace('/title\s*:\s*/', '', $matches[0]));
+		$title= trim($title,"'\""); // remove quote
+	}
+
+	return $title;
+}
+
+
 
 function jws_jk2wp_show_diff(){
 

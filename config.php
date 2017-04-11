@@ -12,6 +12,7 @@
 
 // auto md2html when save to database
 define("JWS_AUTO_MD2HTML", true);
+define("JWS_USE_TITLE_IN_FRONTMATTER", true);
 
 // dev
 define("JWS_POST_META_SHA_KEY", "_jws_jk_sha");
